@@ -18,6 +18,7 @@ package otelgin // import "go.opentelemetry.io/contrib/instrumentation/github.co
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 
@@ -72,6 +73,18 @@ func Middleware(service string, opts ...Option) gin.HandlerFunc {
 		}
 		ctx, span := tracer.Start(ctx, spanName, opts...)
 		defer span.End()
+		defer func() {
+			if err := recover(); err != nil {
+				attrs := semconv.HTTPAttributesFromHTTPStatusCode(http.StatusInternalServerError)
+				spanStatus, spanMessage := semconv.SpanStatusFromHTTPStatusCodeAndSpanKind(http.StatusInternalServerError, oteltrace.SpanKindServer)
+				span.SetAttributes(attrs...)
+				span.SetStatus(spanStatus, spanMessage)
+				if len(c.Errors) > 0 {
+					span.SetAttributes(attribute.String("gin.errors", c.Errors.String()))
+				}
+				panic(err)
+			}
+		}()
 
 		// pass the span through the request context
 		c.Request = c.Request.WithContext(ctx)
