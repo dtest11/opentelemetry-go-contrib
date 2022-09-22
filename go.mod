@@ -1,3 +1,3 @@
-module go.opentelemetry.io/contrib
+module github.com/dtest11/opentelemetry-go-contrib
 
-go 1.17
+go 1.19
